@@ -1,14 +1,17 @@
 import { IndexedTx, StargateClient } from "@cosmjs/stargate"
 import { constants } from "./constants"
-import { rpcConnection } from "./rpcConnection"
+import { rpcClientConnection } from "./rpcClientConnection"
 import { Tx } from "cosmjs-types/cosmos/tx/v1beta1/tx"
 import { MsgSend } from "cosmjs-types/cosmos/bank/v1beta1/tx"
 import { Any } from "cosmjs-types/google/protobuf/any"
+import { readFile } from "fs/promises"
+import { DirectSecp256k1HdWallet, OfflineDirectSigner } from "@cosmjs/proto-signing"
+import { rpcSigningClientConnection } from "./rpcSigningClientConnection"
 
 
 const runAll = async(): Promise<void> => {
-    const rpcClient = await rpcConnection.getClient()
-    console.log("Chain Details, chain id:", await rpcClient.getChainId(), ",\n height:", await rpcClient.getHeight())
+    const rpcClient = await rpcClientConnection.getClient()
+    console.log("Chain Details, chain id: ", await rpcClient.getChainId(), ",height: ", await rpcClient.getHeight())
 
     const balance = await getBalance(rpcClient, constants.address)
     console.log("Vijay's balances: ", balance)
@@ -27,6 +30,14 @@ const runAll = async(): Promise<void> => {
 
     const faucetAddress = getFaucetAddress(deserializedMessage)
     console.log("Faucet address: ", faucetAddress)
+
+    const vijaySigner: OfflineDirectSigner = await getVijaySignerFromMnemonic()
+
+    const vijayAddress = (await vijaySigner.getAccounts())[0].address
+    console.log("Vijay's address from signer: ", vijayAddress)
+
+    const rpcSigningClient = await rpcSigningClientConnection.getClient(vijaySigner)
+    console.log("Chain Details, chain id: ", await rpcSigningClient.getChainId(), ", height: ", await rpcSigningClient.getHeight())
 }
 
 // 1. Get balance for a specific account
@@ -52,6 +63,13 @@ function getDeserializedMessage(decodedMessages: Any[]) {
 // 5. Get faucet address
 function getFaucetAddress(deserializedMessage: MsgSend) {
     return deserializedMessage.fromAddress
+}
+
+// Get signer from mnemonic key
+async function getVijaySignerFromMnemonic() {
+    return DirectSecp256k1HdWallet.fromMnemonic((await readFile("./testnet.vijay.mnemonic.key")).toString(), {
+        prefix: "cosmos",
+    })
 }
 
 runAll()
