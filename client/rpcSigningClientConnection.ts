@@ -1,6 +1,6 @@
 import { OfflineDirectSigner } from "@cosmjs/proto-signing";
 import { SigningStargateClient } from "@cosmjs/stargate";
-import { constants } from "./constants";
+import { constants } from "../constants/constants";
 
 export class rpcSigningClientConnection {
     private client: Promise<SigningStargateClient>

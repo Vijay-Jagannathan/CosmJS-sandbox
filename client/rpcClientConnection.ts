@@ -1,5 +1,5 @@
 import { StargateClient } from "@cosmjs/stargate"
-import { constants } from "./constants";
+import { constants } from "../constants/constants";
 
 // Class to create connection with RPC ndoe
 export class rpcClientConnection {

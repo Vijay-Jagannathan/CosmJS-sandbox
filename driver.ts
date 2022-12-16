@@ -1,13 +1,11 @@
-import { IndexedTx, StargateClient } from "@cosmjs/stargate"
-import { constants } from "./constants"
-import { rpcClientConnection } from "./rpcClientConnection"
-import { Tx } from "cosmjs-types/cosmos/tx/v1beta1/tx"
-import { MsgSend } from "cosmjs-types/cosmos/bank/v1beta1/tx"
-import { Any } from "cosmjs-types/google/protobuf/any"
-import { readFile } from "fs/promises"
-import { DirectSecp256k1HdWallet, OfflineDirectSigner } from "@cosmjs/proto-signing"
-import { rpcSigningClientConnection } from "./rpcSigningClientConnection"
-
+import { constants } from "./constants/constants"
+import { rpcClientConnection } from "./client/rpcClientConnection"
+import { OfflineDirectSigner } from "@cosmjs/proto-signing"
+import { rpcSigningClientConnection } from "./client/rpcSigningClientConnection"
+import { checkPersonalAndFaucetBalance, getBalance } from "./utils/balanceUtil"
+import { getDeserializedTransaction, getFaucetTransaction, sendToken } from "./utils/transactionUtil"
+import { getDecodedMessage, getDeserializedMessage, getFaucetAddress } from "./utils/messageUtil"
+import { getVijayAddress, getVijaySignerFromMnemonic } from "./utils/signerUtil"
 
 const runAll = async(): Promise<void> => {
     const rpcClient = await rpcClientConnection.getClient()
@@ -22,7 +20,7 @@ const runAll = async(): Promise<void> => {
     const decodedTx = getDeserializedTransaction(faucetTx)
     console.log("Deserialized Tx: ", decodedTx)
 
-    const decodedMessages = decodedTx.body!.messages
+    const decodedMessages = getDecodedMessage(decodedTx)
     console.log("Decoded messages: ", decodedMessages)
 
     const deserializedMessage = getDeserializedMessage(decodedMessages)
@@ -33,43 +31,29 @@ const runAll = async(): Promise<void> => {
 
     const vijaySigner: OfflineDirectSigner = await getVijaySignerFromMnemonic()
 
-    const vijayAddress = (await vijaySigner.getAccounts())[0].address
+    const vijayAddress = await getVijayAddress(vijaySigner)
     console.log("Vijay's address from signer: ", vijayAddress)
 
     const rpcSigningClient = await rpcSigningClientConnection.getClient(vijaySigner)
     console.log("Chain Details, chain id: ", await rpcSigningClient.getChainId(), ", height: ", await rpcSigningClient.getHeight())
-}
 
-// 1. Get balance for a specific account
-function getBalance(client: StargateClient, address: string) {
-    return client.getAllBalances(address)
-}
+    // ################################################################ //
+    //                            Send Tokens
+    // ################################################################ //
 
-// 2. Get faucet address
-async function getFaucetTransaction(client: StargateClient) {
-    return (await client.getTx(constants.faucetHash,))!
-}
+    // Check Gas fee and limit
+    console.log("Gas fee: ", decodedTx.authInfo!.fee!.amount)
+    console.log("Gas limit: ", decodedTx.authInfo!.fee!.gasLimit.toString(10))
 
-// 3. Deserialize transaction
-function getDeserializedTransaction(faucetTx: IndexedTx) {
-    return Tx.decode(faucetTx.tx)
-}
+    // Check all balances
+    checkPersonalAndFaucetBalance(rpcSigningClient, vijayAddress, faucetAddress)
 
-// 4. Get deserialized message
-function getDeserializedMessage(decodedMessages: Any[]) {
-    return MsgSend.decode(decodedMessages[0].value)
-}
+    // Send token to faucet address and check balance after
+    const sendTokenResult = await sendToken(rpcSigningClient, vijayAddress, faucetAddress)
 
-// 5. Get faucet address
-function getFaucetAddress(deserializedMessage: MsgSend) {
-    return deserializedMessage.fromAddress
-}
-
-// Get signer from mnemonic key
-async function getVijaySignerFromMnemonic() {
-    return DirectSecp256k1HdWallet.fromMnemonic((await readFile("./testnet.vijay.mnemonic.key")).toString(), {
-        prefix: "cosmos",
-    })
+    // Example transaction that went through - https://explorer.theta-testnet.polypore.xyz/transactions/1A55A8DF01F5AB5AA5719118A9302BBE9F7CD989A5A869B38246917CA54432C6
+    console.log("Transfer result: ", sendTokenResult)
+    checkPersonalAndFaucetBalance(rpcSigningClient, vijayAddress, faucetAddress)
 }
 
 runAll()
