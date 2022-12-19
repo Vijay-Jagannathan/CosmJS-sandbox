@@ -7,6 +7,6 @@ export function getBalance(client: StargateClient, address: string) {
 
 // Helper function to check balances of both
 export async function checkPersonalAndFaucetBalance(rpcSigningClient: SigningStargateClient, vijayAddress: string, faucetAddress: string) {
-    console.log("Alice balance before:", await rpcSigningClient.getAllBalances(vijayAddress))
-    console.log("Faucet balance before:", await rpcSigningClient.getAllBalances(faucetAddress))
+    console.log("Vijay balance:", await rpcSigningClient.getAllBalances(vijayAddress))
+    console.log("Faucet balance:", await rpcSigningClient.getAllBalances(faucetAddress))
 }
