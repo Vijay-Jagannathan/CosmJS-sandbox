@@ -9,4 +9,18 @@ export class constants {
     static faucetHash = "C847A37EC0509FC9F7AF0059FABA68E277F14E03E95C8D88AE080F9B87349A33"
 
     // Testnet faucet to personal address transaction - https://explorer.theta-testnet.polypore.xyz/transactions/C847A37EC0509FC9F7AF0059FABA68E277F14E03E95C8D88AE080F9B87349A33
+
+    // Denomination to be transferred
+    static denomination = "uatom"
+
+    // Amount to be transferred
+    static amount = "100000"
+
+    // Gas amount
+    static gasAmount = "500"
+
+    // Gas limit
+    static gasLimit = "200000"
+    
+    static typeUrlForSendMsg = "/cosmos.bank.v1beta1.MsgSend"
 }

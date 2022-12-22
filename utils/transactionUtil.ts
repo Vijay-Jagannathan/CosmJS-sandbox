@@ -1,23 +1,28 @@
 import { IndexedTx, SigningStargateClient, StargateClient } from "@cosmjs/stargate"
-import { Coin } from "cosmjs-types/cosmos/base/v1beta1/coin"
 import { Tx } from "cosmjs-types/cosmos/tx/v1beta1/tx"
-import { constants } from "../constants/constants"
+import { EncodeObject } from "@cosmjs/proto-signing"
+import { StdFee } from "@cosmjs/amino"
 
-// Get faucet address
-export async function getFaucetTransaction(client: StargateClient) {
-    return (await client.getTx(constants.faucetHash,))!
+// Get transaction
+export async function getTransaction(client: StargateClient, transactionHash: string) {
+    return (await client.getTx(transactionHash))!
+}
+
+// Get signed transaction
+export async function getSignedTransaction(client: SigningStargateClient, transactionHash: string) {
+    return (await client.getTx(transactionHash))!
 }
 
 // Deserialize transaction
-export function getDeserializedTransaction(faucetTx: IndexedTx) {
-    return Tx.decode(faucetTx.tx)
+export function getDeserializedTransaction(transaction: IndexedTx) {
+    return Tx.decode(transaction.tx)
 }
 
-// Helper function which sends token to a particular faucet address with the necessary amount, gas fee, etc.
-export async function sendToken(rpcSigningClient: SigningStargateClient, vijayAddress: string, faucetAddress: string) {
+// Helper function which sends token to a receiver address with the necessary amount, gas fee, etc.
+export async function sendToken(rpcSigningClient: SigningStargateClient, vijayAddress: string, receiverAddress: string) {
     return await rpcSigningClient.sendTokens(
         vijayAddress, 
-        faucetAddress, 
+        receiverAddress, 
         [{ denom: "uatom", amount: "100000" }], 
         {
             amount: [{ denom: "uatom", amount: "500" }],
@@ -27,14 +32,20 @@ export async function sendToken(rpcSigningClient: SigningStargateClient, vijayAd
 }
 
 // Helper function to build and return transaction
-export function buildAndGetTransactionAmount(denomination: string, transactionAmount: string) {
+export function getCoinAmount(denomination: string, transactionAmount: string) {
     return [{ denom: denomination, amount: transactionAmount}]
 }
 
-// Helper function to build gas fee and return
-export function buildAndGetGasFee(denomination: string, gasAmount: string, gasLimit: string) {
+// Helper function to build and return gas fee
+export function getGasFee(denomination: string, gasAmount: string, gasLimit: string) {
     return {
         amount: [{ denom: denomination, amount: gasAmount}],
         gas: gasLimit,
     }
+}
+
+// Helper function which signs and broadcasts the transaction message
+// This is the recommended way to send and broadcast tokens instead of using the sendTokens method
+export async function signAndBroadcast(client: SigningStargateClient, senderAddress: string, sendMessage: EncodeObject[], fee: StdFee) {
+    return await client.signAndBroadcast(senderAddress, sendMessage, fee, "")
 }

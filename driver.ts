@@ -3,8 +3,8 @@ import { rpcClientConnection } from "./client/rpcClientConnection"
 import { OfflineDirectSigner } from "@cosmjs/proto-signing"
 import { rpcSigningClientConnection } from "./client/rpcSigningClientConnection"
 import { checkPersonalAndFaucetBalance, getBalance } from "./utils/balanceUtil"
-import { getDeserializedTransaction, getFaucetTransaction, sendToken } from "./utils/transactionUtil"
-import { getDecodedMessage, getDeserializedMessage, getFaucetAddress } from "./utils/messageUtil"
+import { getGasFee, getCoinAmount, getDeserializedTransaction, getTransaction, signAndBroadcast } from "./utils/transactionUtil"
+import { getDecodedMessage, getDeserializedMessage, getFaucetAddress, getMessage } from "./utils/messageUtil"
 import { getVijayAddress, getVijaySignerFromMnemonic } from "./utils/signerUtil"
 
 const runAll = async(): Promise<void> => {
@@ -14,7 +14,7 @@ const runAll = async(): Promise<void> => {
     const balance = await getBalance(rpcClient, constants.address)
     console.log("Vijay's balances: ", balance)
 
-    const faucetTx = await getFaucetTransaction(rpcClient)
+    const faucetTx = await getTransaction(rpcClient, constants.faucetHash)
     console.log("Faucet Tx: ", faucetTx)
 
     const decodedTx = getDeserializedTransaction(faucetTx)
@@ -37,10 +37,6 @@ const runAll = async(): Promise<void> => {
     const rpcSigningClient = await rpcSigningClientConnection.getClient(vijaySigner)
     console.log("Chain Details, chain id: ", await rpcSigningClient.getChainId(), ", height: ", await rpcSigningClient.getHeight())
 
-    // ################################################################ //
-    //                            Send Tokens
-    // ################################################################ //
-
     // Check Gas fee and limit
     console.log("Gas fee: ", decodedTx.authInfo!.fee!.amount)
     console.log("Gas limit: ", decodedTx.authInfo!.fee!.gasLimit.toString(10))
@@ -48,12 +44,23 @@ const runAll = async(): Promise<void> => {
     // Check all balances
     checkPersonalAndFaucetBalance(rpcSigningClient, vijayAddress, faucetAddress)
 
-    // Send token to faucet address and check balance after
-    const sendTokenResult = await sendToken(rpcSigningClient, vijayAddress, faucetAddress)
+    // ################################################################ //
+    //                     Sign & Broadcast transaction
+    // ################################################################ //
 
-    // Example transaction that went through - https://explorer.theta-testnet.polypore.xyz/transactions/1A55A8DF01F5AB5AA5719118A9302BBE9F7CD989A5A869B38246917CA54432C6
-    console.log("Transfer result: ", sendTokenResult)
+    // Transaction building
+    const coin = getCoinAmount(constants.denomination, constants.amount)
+    const fee = getGasFee(constants.denomination, constants.gasAmount, constants.gasLimit)
+
+    // Compose send message using the transaction amount and broadcast transaction
+    const sendMessage = getMessage(vijayAddress, faucetAddress, coin)
+    const broadcastResult = await signAndBroadcast(rpcSigningClient, vijayAddress, [sendMessage], fee)
+     
+    console.log("Transfer result: ", broadcastResult)
+    console.log("Check your transaction in: https://explorer.theta-testnet.polypore.xyz/transactions/" + broadcastResult.transactionHash)
+
+    // Check all balances
     checkPersonalAndFaucetBalance(rpcSigningClient, vijayAddress, faucetAddress)
 }
-
+    
 runAll()
