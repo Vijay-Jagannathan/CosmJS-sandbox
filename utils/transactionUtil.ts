@@ -1,5 +1,5 @@
 import { IndexedTx, SigningStargateClient, StargateClient } from "@cosmjs/stargate"
-import { Tx } from "cosmjs-types/cosmos/tx/v1beta1/tx"
+import { Tx, TxRaw } from "cosmjs-types/cosmos/tx/v1beta1/tx"
 import { EncodeObject } from "@cosmjs/proto-signing"
 import { StdFee } from "@cosmjs/amino"
 
@@ -16,6 +16,11 @@ export async function getSignedTransaction(client: SigningStargateClient, transa
 // Deserialize transaction
 export function getDeserializedTransaction(transaction: IndexedTx) {
     return Tx.decode(transaction.tx)
+}
+
+// Encode raw transaction
+export async function getEncodedTransaction(txRaw: TxRaw) {
+    return TxRaw.encode(txRaw).finish()
 }
 
 // Helper function which sends token to a receiver address with the necessary amount, gas fee, etc.
@@ -42,6 +47,16 @@ export function getGasFee(denomination: string, gasAmount: string, gasLimit: str
         amount: [{ denom: denomination, amount: gasAmount}],
         gas: gasLimit,
     }
+}
+
+// Helper to sign transaction
+export async function signTx(client: SigningStargateClient, signerAddress: string, sendMessage: EncodeObject[], fee: StdFee) {
+    return await client.sign(signerAddress, sendMessage, fee, "")
+}
+
+// Helper to broadcast transaction
+export async function broadcastTx(client: SigningStargateClient, tx: Uint8Array, timeoutMs: number, pollIntervalMs: number) {
+    return await client.broadcastTx(tx, timeoutMs, pollIntervalMs)
 }
 
 // Helper function which signs and broadcasts the transaction message

@@ -3,7 +3,7 @@ import { rpcClientConnection } from "./client/rpcClientConnection"
 import { OfflineDirectSigner } from "@cosmjs/proto-signing"
 import { rpcSigningClientConnection } from "./client/rpcSigningClientConnection"
 import { checkPersonalAndFaucetBalance, getBalance } from "./utils/balanceUtil"
-import { getGasFee, getCoinAmount, getDeserializedTransaction, getTransaction, signAndBroadcast } from "./utils/transactionUtil"
+import { getGasFee, getCoinAmount, getDeserializedTransaction, getTransaction, signAndBroadcast, signTx, getEncodedTransaction, broadcastTx } from "./utils/transactionUtil"
 import { getDecodedMessage, getDeserializedMessage, getFaucetAddress, getMessage } from "./utils/messageUtil"
 import { getVijayAddress, getVijaySignerFromMnemonic } from "./utils/signerUtil"
 
@@ -54,6 +54,12 @@ const runAll = async(): Promise<void> => {
 
     // Compose send message using the transaction amount and broadcast transaction
     const sendMessage = getMessage(vijayAddress, faucetAddress, coin)
+
+    // Uncomment and use the next 3 lines if you want to sign and broadcast separately (dont forget to comment the signAndBroadcast line)
+    // const txRaw = await signTx(rpcSigningClient, vijayAddress, [sendMessage], fee)
+    // const txBytes = await getEncodedTransaction(txRaw)
+    // const broadcastResult = await broadcastTx(rpcSigningClient, txBytes, constants.timeoutMs, constants.pollIntervalMs)
+
     const broadcastResult = await signAndBroadcast(rpcSigningClient, vijayAddress, [sendMessage], fee)
      
     console.log("Transfer result: ", broadcastResult)

@@ -22,5 +22,12 @@ export class constants {
     // Gas limit
     static gasLimit = "200000"
     
+    // Message type
     static typeUrlForSendMsg = "/cosmos.bank.v1beta1.MsgSend"
+
+    // For broadcastTx
+    static timeoutMs = 60_000
+
+    // For broadcastTx
+    static pollIntervalMs = 3_000
 }
